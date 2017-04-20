@@ -1,4 +1,4 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
+#Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,58 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
+#Error Delete for CPU types
+import os 
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+
+#Global Variables
+LearningRate = 1e-4
+
+
+
 FLAGS = None
+def preprocess(x):
+  x_image = tf.reshape(x, [-1, 28, 28, 1])
+  #x_image = np.array(x_image)
+
+  # binary image
+  for i in range(tf.shape(x_image)[0]):
+    for j in range(tf.shape(x_image)[1]):
+      if tf.greater(x_image[i][j], 0.7):
+        x_image[i][j] = 1 # is this correct?
+      else
+        x_image[i][j] = 0
+
+  # centerization  
+  adjust(x, 1) 
+  adjust(x, 2)
+
+def adjust(x, axis):
+  shrink_reduce_sum = tf.Variable(tf.reduce_sum(x, axis = axis))
+  weighted_sum = tf.Variable(tf.zeros([1]))
+  for i in range(tf.shape(shirnk_reduce_sum)):
+  weighted_sum = tf.add(weighted_sum, tf.multiply(shrink_reduce_sum[i], tf.constant([i])))
+  center_original = tf.divide(tf.shape(shrink_reduce_sum), tf.constant([2]))
+  center_after = tf.cast(tf.sub(tf.divide(weighted_sum, tf.shape(shrink_reduce_sum)), center_original), tf.int32)
+    
+  affined_x = tf.Variable(tf.zeros(tf.shape(x)))
+  if axis == 1
+    for i in range(tf.shape(x)[2]):
+      if tf.greater(center_after, tf.constant([0])):
+        affined_x = x[:, 1 : tf.sub(tf.shape(x)[1], center_after)]
+      else
+        affined_x = x[:, center_after : tf.shape(x)[1]] 
+  elif axis == 2:
+    for i in range(tf.shape(x)[1]):
+      if tf.greater(center_after, tf.constant([0])):
+        affined_x = x[1 : tf.sub(tf.shape(x)[1], center_after), :]
+      else
+        affined_x = x[center_after : tf.shape(x)[1], :]
+  else:
+    print('wrong affine transform has been detected')
+
+
+
 
 
 def deepnn(x):
@@ -111,6 +162,7 @@ def bias_variable(shape):
   return tf.Variable(initial)
 
 def main(_):
+  global LearningRate
   # Import data
   mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
@@ -125,7 +177,7 @@ def main(_):
 
   cross_entropy = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
-  train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+  train_step = tf.train.AdamOptimizer(LearningRate).minimize(cross_entropy)
   correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
   accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -134,6 +186,8 @@ def main(_):
     for i in range(20000):
       batch = mnist.train.next_batch(50)
       if i % 100 == 0:
+        LearningRate = LearningRate/10
+        print("LearningRate is %d" % LearningRate)
         train_accuracy = accuracy.eval(feed_dict={
             x: batch[0], y_: batch[1], keep_prob: 1.0})
         print('step %d, training accuracy %g' % (i, train_accuracy))
@@ -143,7 +197,9 @@ def main(_):
         x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 if __name__ == '__main__':
+
   parser = argparse.ArgumentParser()
+
   parser.add_argument('--data_dir', type=str,
                       default='/tmp/tensorflow/mnist/input_data',
                       help='Directory for storing input data')
